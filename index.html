@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+      background-color: #000;
+    }
+    .container {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    .column {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    button {
+      width: 200px;
+      height: 50px;
+      background-color: #bbda55ca;
+      color: #000;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 8px;
+      font-size: 16px;
+    }
+    .selected {
+      border: 2px solid #fff;
+    }
+    .correct {
+      border: 2px solid #bada55;
+    }
+    .incorrect {
+      border: 2px solid #da55bb;
+    }
+  </style>
+  <body>
+    <div class="container">
+      <div class="column native"></div>
+      <div class="column target"></div>
+    </div>
+
+    <script src="ro.js"></script>
+    <script>
+      window.speechSynthesis.onvoiceschanged = function () {
+        console.log(
+          JSON.stringify(
+            data.map((item, index) => ({ id: index + 1, ...item }))
+          )
+        );
+        let level = "A1";
+        let numberOfPairs = 5;
+        let words = data.filter((item) => item.level === level);
+        console.log(words.length);
+
+        function getRandomElement(arr) {
+          let x = Math.floor(Math.random() * arr.length);
+          return arr.splice(x, 1)[0]; // This will also remove the element from the original array
+        }
+
+        let nativeColumn = document.querySelector(".column.native");
+        let targetColumn = document.querySelector(".column.target");
+
+        function createButtonPair(wordPair) {
+          let nativeButton = document.createElement("button");
+          nativeButton.textContent = wordPair.native;
+          nativeButton.dataset.pairId = wordPair.id;
+          nativeButton.dataset.lang = "native";
+
+          let targetButton = document.createElement("button");
+          targetButton.textContent = wordPair.target;
+          targetButton.dataset.pairId = wordPair.id;
+          targetButton.dataset.lang = "target";
+
+          // Decide where to insert the new buttons
+          let nativePosition = Math.floor(
+            Math.random() * (nativeColumn.children.length + 1)
+          );
+          let targetPosition = Math.floor(
+            Math.random() * (targetColumn.children.length + 1)
+          );
+
+          // Insert the buttons at the chosen positions
+          nativeColumn.insertBefore(
+            nativeButton,
+            nativeColumn.children[nativePosition]
+          );
+          targetColumn.insertBefore(
+            targetButton,
+            targetColumn.children[targetPosition]
+          );
+
+          // Add click event listener to the buttons
+          nativeButton.addEventListener("click", buttonClickHandler);
+          targetButton.addEventListener("click", buttonClickHandler);
+        }
+
+        let voices = window.speechSynthesis.getVoices();
+        console.log(voices);
+
+        function buttonClickHandler(event) {
+          event.target.classList.add("selected");
+
+          // Use the SpeechSynthesis API to read out the button text
+          if (event.target.parentNode.classList.contains("target")) {
+            let voice = voices.find((voice) => voice.lang === targetLang);
+            let speech = new SpeechSynthesisUtterance(event.target.textContent);
+            speech.voice = voice;
+            window.speechSynthesis.speak(speech);
+          }
+
+          let selectedButtons = document.querySelectorAll(".selected");
+          if (selectedButtons.length === 2) {
+            selectedButtons.forEach((button) =>
+              button.classList.remove("selected")
+            );
+
+            if (
+              selectedButtons[0].dataset.pairId ===
+              selectedButtons[1].dataset.pairId
+            ) {
+              selectedButtons.forEach((button) =>
+                button.classList.add("correct")
+              );
+              setTimeout(() => {
+                selectedButtons[0].remove();
+                selectedButtons[1].remove();
+                createButtonPair(getRandomElement(words));
+              }, 1000);
+              return;
+            }
+
+            if (
+              selectedButtons[0].dataset.lang ===
+              selectedButtons[1].dataset.lang
+            ) {
+              event.target.classList.add("selected");
+              return;
+            }
+
+            selectedButtons.forEach((button) =>
+              button.classList.add("incorrect")
+            );
+            setTimeout(() => {
+              selectedButtons.forEach((button) =>
+                button.classList.remove("incorrect")
+              );
+            }, 1000);
+          }
+        }
+
+        // Add unique IDs to word pairs
+        for (let i = 0; i < words.length; i++) {
+          words[i].id = i.toString();
+        }
+
+        // Generate initial set of button pairs
+        for (let i = 0; i < numberOfPairs; i++) {
+          createButtonPair(getRandomElement(words));
+        }
+      };
+    </script>
+  </body>
+</html>
